@@ -92,7 +92,6 @@ Travis CI 提供的是持续集成服务（Continuous Integration，简称 CI）
 
 ```
 npm i -g mocha
-
 ```
 报了以下的错误
 
@@ -119,7 +118,6 @@ npm ERR! the command again as root/Administrator (though this is not recommended
 
 npm ERR! A complete log of this run can be found in:
 npm ERR!     /Users/zhoujialei/.npm/_logs/2018-11-03T18_29_32_947Z-debug.log
-
 ```
 大概的意思是当前用户的权限有问题，无法安装到npm的安装目录：/user/local/lib/node_modules。显然这个锅得我自己背，必定是猴年马月的时候运行了类似于
 
@@ -128,7 +126,7 @@ sudo npm i -g xxx // 改变了/user/local/lib/node_modules的权限
 ```
 的命令，导致当前用户没法写入了。解决的办法在报错信息上写了，用finder右击打开这个文件，更改一下当前用户的读写权限就能解决了。
 
-![截图](img/course/week-1/1-1.png)
+![截图](img/1-1.png)
 
 #### case 1
 
@@ -140,14 +138,12 @@ describe('Array', function() {
     })
   })
 })
-
 ```
 相信大部分前端同学对indexOf()这个函数不陌生，Array.prototype.indexOf()接受两个参数，第一个参数是要在array内搜索的元素，第二个参数是可选的，表示要从那个索引开始找起，返回值或者是第一个和搜索的元素相同的元素的索引，或者是-1表示要搜索的元素不在数组内。
 
 那要满足assert.equal这个条件，显然我们只要保证我们对[1, 2, 3]这个数组调用indexOf函数的时候，不去寻找1, 2, 3就可以了。下面是能够保证测试通过的代码
 
 ```
-
 describe('Array', function() {
   describe('#indexOf()', function() {
     it('should return -1 when the value is not present', function() {
@@ -155,7 +151,6 @@ describe('Array', function() {
     })
   })
 })
-
 ```
 
 #### case 2
@@ -482,7 +477,6 @@ e 70.0.3538 (Linux 0.0.0): Executed 4 of 4 SUCCESS (0.077 secs / 0.068 secs)
 No output has been received in the last 10m0s, this potentially indicates a stalled build or something wrong with the build itself.
 Check the details on how to adjust your build configuration on: https://docs.travis-ci.com/user/common-build-problems/#Build-times-out-because-no-output-was-received
 The build has been terminated
-
 ```
 
 如果测试用例本身没有问题的话，那就只能是我们的karma配置需要进一步改进。翻阅karma.conf.js发现**配置项singleRun**值为false，查阅[官方文档](http://karma-runner.github.io/3.0/config/configuration-file.html)并猜想测试timeout是不是由于测试完成之后没有退出导致的。由于我们的测试确实跑一次也就够了，把**配置项singleRun**的值改为true。Hooray！问题解决，Travis CI 终于pass了我们的测试。下面是正确配置后的 Travis CI job log:
