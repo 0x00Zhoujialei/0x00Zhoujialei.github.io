@@ -93,6 +93,7 @@ Travis CI 提供的是持续集成服务（Continuous Integration，简称 CI）
 ```
 npm i -g mocha
 ```
+
 报了以下的错误
 
 ```
@@ -126,7 +127,7 @@ sudo npm i -g xxx // 改变了/user/local/lib/node_modules的权限
 ```
 的命令，导致当前用户没法写入了。解决的办法在报错信息上写了，用finder右击打开这个文件，更改一下当前用户的读写权限就能解决了。
 
-![截图](img/1-1.png)
+![截图](/img/1-1.png)
 
 #### case 1
 
@@ -363,7 +364,7 @@ node_js: // 指定使用8, 7, 6这三个版本的node js测试测试用例，可
 
 这样 Travis CI 在初始化我们的repo时就会带上mocha了，至于测试通过那当然也是顺理成章的事情。
 
-![测试通过](img/course/week-1/2-1.png)
+![测试通过](/img/course/week-1/2-1.png)
 
 ## exercise 3
 
