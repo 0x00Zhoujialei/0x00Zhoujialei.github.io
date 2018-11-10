@@ -4,7 +4,7 @@ title:      "[译]macOS平台上针对设计师/前端开发者的vim配置"
 subtitle:   "iTerm + Oh My Zsh + Vim & Vim plugs workflow"
 date:       2018-11-11
 author:     "zhoujialei"
-header-img: "img/post-bg-js-version.jpg"
+header-img: "img/post-bg-unix-linux.jpg"
 tags:
     - 开发
     - 翻译计划
