@@ -1,0 +1,123 @@
+ ---
+ layout:     post
+ title:      "记一道与事件冒泡有关的问题"
+ subtitle:   "回顾一下与树相关的一些知识"
+ date:       2018-11-17
+ author:     "zhoujialei"
+ header-img: "img/post-bg-unix-linux.jpg"
+ tags:
+     - 开发
+     - front-end
+ ---
+ 
+# 问题
+
+实现事件代理功能，要求满足：
+ 
+ * 可以通过`css selector`指定代理事件的根节点，如果有多个节点满足则以离document level最近的那个节点为准
+ * 可以通过`css selector`选择需要被代理事件的子节点，并存储与之对应的触发函数
+ * 如果有多个子节点需要被代理事件，他们对应的触发函数触发顺序满足冒泡规则
+
+# 分析
+
+一看到这个题目，熟悉iOS编程的同学(比如我)可能会立马联想起来`Cocoa`框架中的`delegate pattern`。事实上不管是针对`Cocoa`还是针对`front-end`，两者对于`delegate`的处理都是差不多一样的，只是囿于语言上的差异细节上有所不同而已。
+
+这里引用[Cocoa Core Competencies](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/Delegation.html)关于`delegate`的定义：
+> Delegation is a simple and powerful pattern in which one object in a program acts on behalf of, or in coordination with, another object. The delegating object keeps a reference to the other object—the delegate—and at the appropriate time sends a message to it. The message informs the delegate of an event that the delegating object is about to handle or has just handled. The delegate may respond to the message by updating the appearance or state of itself or other objects in the application, and in some cases it can return a value that affects how an impending event is handled. The main value of delegation is that it allows you to easily customize the behavior of several objects in one central object.
+
+简单的说`delegate`就是程序中一个对象代表另一个对象去做一些事情，比如在`iOS编程`中，`UITableView类`就有`UITableViewDelegate`来处理行高啊处理表内行的`selection事件`等等。使用`delegate`可以帮助我们分离出与`view层`无关的逻辑处理，方便`view`的复用。良好的`protocol`定义本身也可以大大提高代码的可读性，一举多得。当然这里只是简单引“他山之石”介绍一下事件代理本身，对`iOS delegate`感兴趣的同学可以移步[Concepts in Objective-C Programming](https://developer.apple.com/library/archive/documentation/General/Conceptual/CocoaEncyclopedia/DelegatesandDataSources/DelegatesandDataSources.html)做进一步了解。
+
+在我们动手解决问题之前，`delegate`作为一个成熟的编程范式，在前端领域是不是有现成的轮子呢？
+
+答案显然是肯定的。举个例子，`JQuery`提供了`delegate()`方法，它将事件处理函数绑定在指定的根元素上，由于事件会冒泡，它用来处理指定的子元素上的事件。
+> `.delegate( selector, eventType, handler )` 
+
+>  Description: Attach a handler to one or more events for all elements that match the selector, now or in the future, based on a specific set of root elements.
+
+再举个例子, `react`的事件处理也和`delegate`密切相关:
+> `React` 实现了一个“合成事件”层`（synthetic event system）`，这个事件模型保证了和 W3C 标准保持一致，所以不用担心有什么诡异的用法，并且这个事件层消除了 IE 与 W3C 标准实现之间的兼容问题。“合成事件”会以事件委托`（event delegation）`的方式绑定到组件最上层，并且在组件卸载`（unmount）`的时候自动销毁绑定的事件。
+
+> ... React doesn't attach your click event handlers to the nodes. It uses event delegation and listens at the document level.
+
+现有的轮子和之前对于问题的分析可以为问题的解决提供可行性的论证和解决思路。回到问题本身，从数据结构的角度，我们要解决的问题实质是`DOM树`的遍历问题；结合触发函数触发顺序要满足[冒泡规则](https://www.w3.org/TR/DOM-Level-3-Events/#dom-event-architecture)，这个问题可以进一步归结为`DOM树`的回溯问题:给定`DOM子节点`，给出到特定的`DOM父节点`的路径。显然地，在一棵`DOM树`中，一个`DOM父节点`可以有多个`DOM孩子节点`，但是给定的`DOM孩子节点`只能有一个`DOM父节点`，否则就是图不是树了。
+
+更进一步地，如果翻阅MDN关于[Event的文档](https://developer.mozilla.org/en-US/docs/Web/API/Event)，`Event`本身提供`composedPath()`方法:
+> Returns the event’s path (objects on which listeners will be invoked). This does not include nodes in shadow trees if the shadow root was created with its ShadowRoot.mode closed.
+
+事件是以冒泡顺序触发的(从目标节点到`document`节点)，我们记要代理的事件为e，`e.composedPath()`表示从目标节点到document节点的冒泡路径，假设我们设置事件代理的节点在`e.composedPath()`返回的数组中的索引为i，那么我们只需要在`e.composedPath()[0]`和`e.composedPath()[i]`中搜索符合给定的`css selector`的节点，并调用给定的触发函数即可。
+
+MDN提供了`Element.prototype.matches`方法及其`Polyfill`方便我们根据给定`css selector`来判断该元素是否能被选择；同时我们可以通过`Element.querySelector()`方法在`document`中找到需要代理事件的根节点。
+
+利用`matches`方法来选择从根节点到目标节点的路径中符合`css selector`的节点，利用`querySelector`方法确定根节点，利用`composedPath`方法确定从根节点到目标节点的路径，结合这些，我们的代码实现就呼之欲出了。
+
+```
+  if (!Element.prototype.matches) { // Polyfill, https://developer.mozilla.org/en-US/docs/Web/API/Element/matches
+      Element.prototype.matches = Element.prototype.msMatchesSelector;
+  }
+
+  class Delegator {
+    constructor (selector/* root选择器 */) {
+      this.rootSelector = selector;
+      this.root = doc.querySelector(selector);
+      this.eventQueue = {}; // 持有对应事件注册的selector和triggerFunction
+      this.eventListeners = {}; // 持有listener
+    }
+
+    rootIndex(cp) { // 在路径找到最靠近document level的满足root selector的节点，给定的root selector可能在dom树中有多个节点满足条件
+      var ri;
+      for (var i = 0; i < path.length; i++) {
+        if (path[i].matches(this.rootSelector)) {
+          ri = i; 
+        }
+      }
+      return ri;
+    }
+
+    handleEvent(e) {
+      var path = e.composedPath(); // 如果要更好的兼容性，可以通过Node.parentElement来实现，这里不表
+      var rtIdx = this.rootIndex(path);
+      for (var i = 0; i < rtIdx; i++) {
+        this.eventQueue[e.type].forEach((c) => {
+          if (path[i].matches(c.selector)) {
+            c.func.call(path[i], e);
+          }
+        })
+      }
+    }
+
+    on (event/* 绑定事件 */, selector/* 触发事件节点对应选择器 */, fn/* 出发函数 */) {
+      if (!this.eventQueue[event]) {
+        let listener = this.handleEvent.bind(this); // bind()返回新的函数，直接传到addeventlistener里面你就永远也别想删掉它了
+        this.eventQueue[event] = [];
+        this.eventListeners[event] = listener;
+        this.root.addEventListener(event, listener);
+      }
+
+      this.eventQueue[event].push({
+        selector: selector,
+        func: fn,
+      });
+
+      return this;
+    }
+
+    destroy () {
+      for (var event in this.eventListeners) {
+        this.root.removeEventListener(event, this.eventListeners[event]);
+      }
+    }
+  }
+```
+
+# 参考
+
+* [Event.composedPath()](https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath)
+* [Element.matches()
+](https://developer.mozilla.org/en-US/docs/Web/API/Element/matches)
+* [Element.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector)
+* [ocoa Core Competencies - Delegation](https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/Delegation.html)
+* [Node.parentElement](http://127.0.0.1:49522/Dash/qcilqrct/developer.mozilla.org/en-US/docs/Web/API/Node/parentElement.html)
+* [JQuery .delegate()](http://api.jquery.com/delegate/)
+* [Event, MDN](https://developer.mozilla.org/en-US/docs/Web/API/Event)
+* [React入门教程 - 事件处理](https://hulufei.gitbooks.io/react-tutorial/content/events.html)
+* [Event delegation in React](https://github.com/facebook/react/issues/13635)
