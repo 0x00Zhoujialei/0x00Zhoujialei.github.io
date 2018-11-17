@@ -1,14 +1,14 @@
- ---
- layout:     post
- title:      "记一道与事件冒泡有关的问题"
- subtitle:   "回顾一下与树相关的一些知识"
- date:       2018-11-17
- author:     "zhoujialei"
- header-img: "img/post-bg-unix-linux.jpg"
- tags:
-     - 开发
-     - front-end
- ---
+---
+layout:     post
+title:      "记一道与事件冒泡有关的问题"
+subtitle:   "回顾一下与树相关的一些知识"
+date:       2018-11-17
+author:     "zhoujialei"
+header-img: "img/post-bg-unix-linux.jpg"
+tags:
+    - 开发
+    - front-end
+---
  
 # 问题
 
