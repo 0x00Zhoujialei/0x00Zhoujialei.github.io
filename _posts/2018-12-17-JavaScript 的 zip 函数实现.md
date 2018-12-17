@@ -2,7 +2,7 @@
 layout:     post
 title:      "JavaScript 的 zip 函数实现"
 subtitle:   "借助Iterator可以获得优雅的实现"
-date:       2018-12-19
+date:       2018-12-17
 author:     "zhoujialei"
 header-img: "img/post-bg-unix-linux.jpg"
 tags:
